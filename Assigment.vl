@@ -1,0 +1,43 @@
+module half_adder(output sum, output carry, input a, input b);
+   xor(sum, a, b);
+   and(carry, a, b);
+endmodule
+
+module full_adder(output sum, output carry, input x, input y, input z);
+   wire s1, c1, c2;
+   half_adder h1(s1, c1, x, y);
+   half_adder h2(sum, c2, s1, z);
+   or(carry, c1, c2);
+
+endmodule
+
+//4x1 mux using 2x1 mux
+module mux4x1(
+    output wire y,
+    input wire a1,
+    input wire a2,
+    input wire a3,
+    input wire a4,
+    input wire sel1,
+    input wire sel2
+);
+    wire w1, w2;
+    mux2x1 m1(w1, a1, a2, sel1);
+    mux2x1 m2(w2, a3, a4, sel1);
+    mux2x1 m3(y, w1, w2, sel2);
+
+endmodule
+
+module mux2x1(
+  output wire y,
+  input wire x0,
+  input wire x1,
+  input wire sel
+
+);
+    wire w1, w2, w3;
+    not(w1, sel);
+    and(w2, w1, x0);
+    and(w3, sel, x1);
+    or(y, w2, w3);
+endmodule
