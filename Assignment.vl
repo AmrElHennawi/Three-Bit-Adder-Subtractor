@@ -1,8 +1,17 @@
+//The total number of components we have used to build this circuit is 12
+//6 MUX 4x1      3 Full_adder      3 XOR gate
+
+
+// Structural descriptions for half adder that will be used to build full adder
+//1 XOR gate           1 AND gate
 module half_adder(output sum, output carry, input a, input b);
    xor(sum, a, b);
    and(carry, a, b);
 endmodule
 
+
+// Structural descriptions for full adder using 
+//2 half_adder       1 OR gate
 module full_adder(output sum, output carry, input x, input y, input z);
    wire s1, c1, c2;
    half_adder h1(s1, c1, x, y);
@@ -11,7 +20,9 @@ module full_adder(output sum, output carry, input x, input y, input z);
 
 endmodule
 
-//4x1 mux using 2x1 mux
+
+// Structural descriptions for 4x1 mux using 2x1 mux
+//3 MUX 2X1
 module mux4x1(
     output wire y,
     input wire a1,
@@ -28,6 +39,9 @@ module mux4x1(
 
 endmodule
 
+
+// Structural descriptions for 2x1 MUX
+//1 NOT gate      2 AND gate          1 OR gate
 module mux2x1(
   output wire y,
   input wire x0,
@@ -42,70 +56,137 @@ module mux2x1(
     or(y, w2, w3);
 endmodule
 
+
+// Structural descriptions for three_bit_adder_subtractor that do that:
 // * The input is two selection inputs, and two signed integers in 2's complement form: A and B, each integer is 3-bits.
 // * The output is a signed integer in 2's complement from: G, its size is 3-bits.
 // * When the selection inputs are 00, G = A+1
 // * When the selection inputs are 01, G = A+B
 // * When the selection inputs are 10, G = B-A
 // * When the selection inputs are 11, G = 1-B
-// * You must provide a test bench that tests all aspects of the implemented circuit with at least 40 test cases on various input values.
-// * You are not allowed to use behavioral Verilog descriptions (if, switch, ..etc) for multiplexers or any other aspects except for test bench.
+// We use to build this circuit for each bit:
+// 2 MUX 4x1      1 Full_adder      1 XOR gate
 module three_bit_adder_subtractor(
     input wire [2:0] A,
     input wire [2:0] B,
     input wire [1:0] sel,
     output wire [2:0] G,
-    output wire c3
+    output wire c2
 );
 
     wire w1, w2, w3, w4, w5, w6, w7,w8,w9, c0 ,c1;
 
-    mux4x1 m1(w1 , A[0] , B[0] , B[0] , 1'b1 , sel[0] , sel[1]);
+    // First bit 
+
+    // The 6 input of m1 is : 
+    // input 0 --> first bit of A(A[0])         input 1 --> first bit of B(B[0])
+    // input 2 --> first bit of B(B[0])         input 3 --> bit 1 
+    // input 4 --> sel[0]                       input 5 --> sel[1]  
+    // m1 store output of it in w1
+    mux4x1 m1(w1 , A[0] , B[0] , B[0] , 1'b1 , sel[0] , sel[1]);  
+
+    // The 6 input of m2 is : 
+    // input 0 --> bit 1                        input 1 --> first bit of A(A[0])
+    // input 2 --> first bit of A(A[0])        input 3 --> first bit of B(B[0])
+    // input 4 --> sel[0]                       input 5 --> sel[1]  
+    // m2 store output of it in w2
     mux4x1 m2(w2 , 1'b1 , A[0] , A[0] , B[0] , sel[0] , sel[1]);
+
+    // The 2 input of x1 is :
+    // input 0 --> sel[1]                           input 1 --> The output of m2(w2)
+    // x1 store output of it in w7
     xor x1(w7 , sel[1] , w2);
-    full_adder f(G[0] , c0 ,  sel[1] , w1 , w7);
 
+    // The 3 input of f1 is :
+    // input 0 --> sel[1]                           input 1 --> The output of m1(w1)
+    // input 2 --> The output of x1(w7)
+    // f1 store output of it in G[0] and this is the final value of first bit and store the carry in c0
+    full_adder f1(G[0] , c0 ,  sel[1] , w1 , w7);
+
+    // second bit 
+
+    // The 6 input of m3 is : 
+    // input 0 --> second bit of A(A[1])            input 1 --> second bit of B(B[1])
+    // input 2 --> second bit of B(B[1])            input 3 --> bit 0 
+    // input 4 --> sel[0]                           input 5 --> sel[1]  
+    // m3 store output of it in w3
     mux4x1 m3(w3, A[1] , B[1] , B[1] , 1'b0 , sel[0] , sel[1]);
-    mux4x1 m4(w4 , 1'b0 , A[1] , A[1] , B[1] , sel[0] , sel[1]);
-    xor x2(w8 , sel[1] , w4);
-    full_adder f1(G[1] , c1,  c0 , w3 , w8);
 
+    // The 6 input of m4 is : 
+    // input 0 --> bit 0                            input 1 --> second bit of A(A[0])
+    // input 2 --> second bit of A(A[1])            input 3 --> second bit of B(B[1])
+    // input 4 --> sel[0]                           input 5 --> sel[1]  
+    // m4 store output of it in w4
+    mux4x1 m4(w4 , 1'b0 , A[1] , A[1] , B[1] , sel[0] , sel[1]);
+
+    // The 2 input of x2 is :
+    // input 0 --> sel[1]                           input 1 --> The output of m4(w4)
+    // x2 store output of it in w8
+    xor x2(w8 , sel[1] , w4);
+
+    // The 3 input of f2 is :
+    // input 0 --> carry of first bit(c0)            input 1 --> The output of m3(w3)
+    // input 2 --> The output of x2(w8)
+    // f2 store output of it in G[1] and this is the final value of second bit and store the carry in c1
+    full_adder f2(G[1] , c1,  c0 , w3 , w8);
+
+    // Third bit 
+
+    // The 6 input of m5 is : 
+    // input 0 --> third bit of A(A[2])                 input 1 --> third bit of B(B[2])
+    // input 2 --> third bit of B(B[2])                 input 3 --> bit 0 
+    // input 4 --> sel[0]                               input 5 --> sel[1]  
+    // m5 store output of it in w5
     mux4x1 m5(w5 , A[2] , B[2] , B[2] , 1'b0 , sel[0] , sel[1]);
+
+    // The 6 input of m6 is : 
+    // input 0 --> bit 0                                input 1 --> third bit of A(A[2])
+    // input 2 --> third bit of A(A[2])                 input 3 --> third bit of B(B[2])
+    // input 4 --> sel[0]                               input 5 --> sel[1]  
+    // m6 store output of it in w6
     mux4x1 m6(w6 , 1'b0 , A[2] , A[2] , B[2] , sel[0] , sel[1]);
+
+    // The 2 input of x3 is :
+    // input 0 --> sel[1]                            input 1 --> The output of m6(w6)
+    // x3 store output of it in w9
     xor x3(w9 , sel[1] , w6);
-    full_adder f2(G[2] , c3,  c1 , w5 , w9);
+
+    // The 3 input of f3 is :
+    // input 0 --> carry of second bit(c1)           input 1 --> The output of m3(w3)
+    // input 2 --> The output of x2(w8)
+    // f3 store output of it in G[2] and this is the final value of third bit and store the carry in c2
+    full_adder f3(G[2] , c2,  c1 , w5 , w9);
 
 endmodule
-//* You must provide a test bench that tests all aspects
-// of the implemented circuit with at 
-// least 40 test cases on various input values.
 
 
+// Behavioral descriptions for the test bench of previous three_bit_adder_subtractor circuit
+// We made 40 test cases on various input values
 module three_bit_adder_subtractor_test();
     reg [2:0] A, B;
     reg [1:0] sel;
     wire [2:0] G;
-    wire c3;
+    wire c2;
     integer i;
     integer j;
     integer k;
-    three_bit_adder_subtractor f(A, B, sel, G, c3);
+    three_bit_adder_subtractor f(A, B, sel, G, c2);
 
     initial begin
-        $monitor($time, " A=%b, B=%b, sel=%b, G=%b, c3=%b", A, B, sel, G, c3);
+        $monitor($time, " A=%b, B=%b, sel=%b, G=%b, c2=%b", A, B, sel, G, c2);
 
-            A = 3'b000;
-            B = 3'b000;
-            sel = 2'b00; 
+            A = 3'b000;                         //initialize A with value 000
+            B = 3'b000;                         //initialize B with value 000
+            sel = 2'b00;                        //initialize selector with value 00
             for(i=0;i<2;i=i+1) begin
                 for(j=0;j<5;j=j+1) begin
                     for(k=0;k<4;k=k+1) begin
-                        sel = sel + 1'b1;
-                        A = A + 1'b1;
-                        B = B + 1'b1;
                         #1;
+                        sel = sel + 1'b1;        //increment the value of selector
                     end
+                    B = B + 1'b1;               //increment the value of B
                 end
+                A = A + 1'b1;                  //increment the value of A
             end
 
         $stop;
